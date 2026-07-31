@@ -49,6 +49,7 @@ const orders = [];
 
 // ** Express app
 const express = require("express");
+const { error } = require("node:console");
 const app = express();
 const PORT = 8000;
 
@@ -128,6 +129,58 @@ app.post("/cart", (req, res) => {
   return res.status(201).json({
     message: "Quantity updated in cart.",
     item: productInCart,
+  });
+});
+
+// ? PATCH /cart/:productId
+app.patch("/cart/:productId", (req, res) => {
+  const productId = parseInt(req.params.productId);
+  const { quantity } = req.body;
+
+  if (isNaN(productId))
+    return res.status(400).json({ error: "productId must be of type number" });
+
+  if (
+    typeof quantity !== "number" ||
+    !Number.isInteger(quantity) ||
+    quantity < 0
+  )
+    return res
+      .status(400)
+      .json({ error: "quantity must be of type number and must be positive" });
+
+  const product = products.find((item) => item.id === productId);
+
+  if (product === undefined)
+    return res.status(404).json({ error: "Product not found" });
+
+  const targetProductIndex = cart.findIndex(
+    (item) => item.productId === productId,
+  );
+
+  if (targetProductIndex < 0)
+    return res.status(404).json({
+      error: `product with productId ${productId} is not found in cart`,
+    });
+
+  if (quantity === 0) {
+    const removedItem = cart[targetProductIndex];
+    cart.splice(targetProductIndex, 1);
+
+    return res.json({
+      message: "Product quantity set to zero so it is removed from cart",
+      product: removedItem,
+    });
+  }
+
+  if (quantity > product.stock)
+    return res.status(409).json({ error: "Insufficient stock", product });
+
+  cart[targetProductIndex].quantity = quantity;
+
+  return res.json({
+    message: "product quantity updated",
+    product: cart[targetProductIndex],
   });
 });
 
