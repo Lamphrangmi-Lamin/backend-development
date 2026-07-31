@@ -41,7 +41,24 @@ const products = [
 
 // 2. Cart Collection
 // The spec requests an array of items: { productId, quantity }
-const cart = [];
+const cart = [
+  {
+    productId: 1,
+    quantity: 10,
+  },
+  {
+    productId: 2,
+    quantity: 1,
+  },
+  {
+    productId: 4,
+    quantity: 1,
+  },
+  {
+    productId: 5,
+    quantity: 1,
+  },
+];
 
 // 3. Orders Collection
 // The spec requests an array of completed orders: { id, items, total, createdAt }
@@ -202,6 +219,71 @@ app.delete("/cart/:productId", (req, res) => {
 
   return res.status(204).send();
 });
+
+// ? GET /orders
+app.get("/orders", (req, res) => {
+  res.json(orders);
+});
+
+// ? POST /orders
+app.post("/orders", (req, res) => {
+  if (!cart.length)
+    return res.status(400).json({ error: "Cart cannot be empty" });
+
+  let totalPrice = 0;
+
+  // ** Get totalPrice
+  for (const cartItem of cart) {
+    const product = products.find(
+      (product) => product.id === cartItem.productId,
+    );
+    if (product === undefined)
+      return res.status(404).json({ error: "Product do not exist" });
+
+    if (cartItem.quantity > product.stock)
+      return res.status(400).send("Stock insufficient");
+
+    totalPrice += cartItem.quantity * product.price;
+  }
+
+  // ** Update stock of each cart item
+  for (const cartItem of cart) {
+    const product = products.find(
+      (product) => product.id === cartItem.productId,
+    );
+
+    product.stock -= cartItem.quantity;
+  }
+
+  // ** Cleanup and response
+  const newOrder = {
+    id: orders.length + 1,
+    items: [...cart],
+    total: totalPrice,
+    createdAt: new Date(Date.now()).toISOString(),
+  };
+
+  // ** Add new order to orders
+  orders.push(newOrder);
+
+  // ** Reset cart
+  cart.length = 0;
+
+  return res.status(201).json({
+    message: "Order Place successfully!",
+    order: newOrder,
+  });
+});
+
+// ? GET /orders/:id
+// app.get("/orders/:id", (req, res) => {
+//   const id = parseInt(req.params.id);
+
+//   if (isNaN(id))
+//     return res.status(400).json({ error: "id must be of type number" });
+
+//   const order = orders.find((order) => order.productId === id);
+// });
 
 // ** Starting the server
 app.listen(PORT, () => console.log(`Server is up and running on PORT ${PORT}`));
