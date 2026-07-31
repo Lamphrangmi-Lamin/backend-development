@@ -50,6 +50,7 @@ const orders = [];
 // ** Express app
 const express = require("express");
 const { error } = require("node:console");
+const { parse } = require("node:path");
 const app = express();
 const PORT = 8000;
 
@@ -182,6 +183,24 @@ app.patch("/cart/:productId", (req, res) => {
     message: "product quantity updated",
     product: cart[targetProductIndex],
   });
+});
+
+// ? DELETE /cart/:productId
+app.delete("/cart/:productId", (req, res) => {
+  const productId = parseInt(req.params.productId);
+
+  if (isNaN(productId))
+    return res.status(400).json({ error: "productId must be of type number" });
+
+  const indexToDelete = cart.findIndex((item) => item.productId === productId);
+
+  if (indexToDelete === -1)
+    return res.status(404).json({ error: "Product not found in cart" });
+
+  const removedItem = cart[indexToDelete];
+  cart.splice(indexToDelete, 1);
+
+  return res.status(204).send();
 });
 
 // ** Starting the server
