@@ -1,0 +1,4 @@
+[Sat Aug 01 2026 16:55:53 GMT+0530 (India Standard Time)]
+GET /products[Sat Aug 01 2026 16:56:16 GMT+0530 (India Standard Time)]
+GET /products[Sat Aug 01 2026 16:56:49 GMT+0530 (India Standard Time)]
+POST /products
