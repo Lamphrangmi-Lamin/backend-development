@@ -41,24 +41,7 @@ const products = [
 
 // 2. Cart Collection
 // The spec requests an array of items: { productId, quantity }
-const cart = [
-  {
-    productId: 1,
-    quantity: 10,
-  },
-  {
-    productId: 2,
-    quantity: 1,
-  },
-  {
-    productId: 4,
-    quantity: 1,
-  },
-  {
-    productId: 5,
-    quantity: 1,
-  },
-];
+const cart = [];
 
 // 3. Orders Collection
 // The spec requests an array of completed orders: { id, items, total, createdAt }
@@ -220,11 +203,6 @@ app.delete("/cart/:productId", (req, res) => {
   return res.status(204).send();
 });
 
-// ? GET /orders
-app.get("/orders", (req, res) => {
-  res.json(orders);
-});
-
 // ? POST /orders
 app.post("/orders", (req, res) => {
   if (!cart.length)
@@ -275,15 +253,24 @@ app.post("/orders", (req, res) => {
   });
 });
 
+// ? GET /orders
+app.get("/orders", (req, res) => {
+  res.json(orders);
+});
+
 // ? GET /orders/:id
-// app.get("/orders/:id", (req, res) => {
-//   const id = parseInt(req.params.id);
+app.get("/orders/:id", (req, res) => {
+  const id = parseInt(req.params.id);
 
-//   if (isNaN(id))
-//     return res.status(400).json({ error: "id must be of type number" });
+  if (isNaN(id))
+    return res.status(400).json({ error: "id must be of type number" });
 
-//   const order = orders.find((order) => order.productId === id);
-// });
+  const order = orders.find((order) => order.id === id);
+  if (order === undefined)
+    return res.status(404).json({ error: "Order not found" });
+
+  return res.json(order);
+});
 
 // ** Starting the server
 app.listen(PORT, () => console.log(`Server is up and running on PORT ${PORT}`));
