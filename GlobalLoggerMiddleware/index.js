@@ -39,7 +39,10 @@ const products = [
 ];
 
 const express = require("express");
+
+// ** Middlewares
 const { loggerMiddleware } = require("./middlewares/logger");
+const { isAdmin } = require("./middlewares/adminAuthMiddleware");
 
 const app = express();
 
@@ -49,6 +52,23 @@ app.use(loggerMiddleware);
 // ** Routes
 app.get("/products", (req, res) => {
   res.json(products);
+});
+
+// ? DELETE /products/:id
+app.delete("/products/:id", isAdmin, (req, res) => {
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id))
+    return res.status(400).json({ error: "id must be of type number" });
+
+  const indexToDelete = products.findIndex((e) => e.id === id);
+
+  if (indexToDelete < 0)
+    return res.status(404).json({ error: "Product does not exist" });
+
+  products.splice(indexToDelete, 1);
+
+  return res.json({ message: "Product removed successfully" });
 });
 
 app.listen(8000, () => console.log(`Server is up and running`));
