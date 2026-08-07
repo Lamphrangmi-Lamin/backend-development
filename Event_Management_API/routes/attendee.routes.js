@@ -1,16 +1,16 @@
 const express = require("express");
 
-const { ATTENDEES } = require("../model/attendees");
-const { EVENTS } = require("../model/events");
 const {
   createAttendee,
   getAllAttendees,
 } = require("../controllers/attendee.controller");
 
+const { auth } = require("../middleware/auth");
+
 const router = express.Router();
 
 // * POST /attendees
-router.post("/", createAttendee);
+router.post("/", auth, createAttendee);
 
 // * GET /attendees, /attendees?eventId=2
 router.get("/", getAllAttendees);
