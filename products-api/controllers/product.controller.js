@@ -1,4 +1,4 @@
-const { eq, gte } = require("drizzle-orm");
+const { eq, gte, lte, and } = require("drizzle-orm");
 const db = require("../src");
 const { productsTable } = require("../src/db/schema");
 
@@ -6,15 +6,63 @@ const { productsTable } = require("../src/db/schema");
 exports.getAllProducts = async (req, res) => {
   const products = await db.select().from(productsTable);
   const minPrice = req.query.minPrice;
+  const maxPrice = req.query.maxPrice;
 
-  if (isNaN(minPrice))
-    return res.status(400).json({ error: "minPrice must be a number" });
+  // ** GET /products?minPrice=100&maxPrice=500
+  if (minPrice && maxPrice) {
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
 
-  if (minPrice) {
+    if (isNaN(minPrice) || isNaN(maxPrice))
+      return res
+        .status(400)
+        .json({ error: "minPrice and maxPrice must be valid number" });
+
+    if (min > max)
+      return res
+        .status(400)
+        .json({ error: "minPrice cannot be greater than maxPrice" });
+
     const filteredProducts = await db
       .select()
       .from(productsTable)
-      .where(gte(productsTable.price, minPrice));
+      .where(and(gte(productsTable.price, min), lte(productsTable.price, max)));
+
+    return res.json({
+      count: filteredProducts.length,
+      products: filteredProducts,
+    });
+  }
+
+  // ** GET /products?minPrice=100
+  if (minPrice) {
+    const min = Number(minPrice);
+
+    if (isNaN(minPrice))
+      return res.status(400).json({ error: "minPrice must be a number" });
+
+    const filteredProducts = await db
+      .select()
+      .from(productsTable)
+      .where(gte(productsTable.price, min));
+
+    return res.json({
+      count: filteredProducts.length,
+      products: filteredProducts,
+    });
+  }
+
+  // ** GET /products?maxPrice=500
+  if (maxPrice) {
+    const max = Number(maxPrice);
+
+    if (isNaN(maxPrice))
+      return res.status(400).json({ error: "maxPrice must be a valid number" });
+
+    const filteredProducts = await db
+      .select()
+      .from(productsTable)
+      .where(lte(productsTable.price, max));
 
     return res.json({
       count: filteredProducts.length,
@@ -26,7 +74,6 @@ exports.getAllProducts = async (req, res) => {
 };
 
 // ** GET /products/:id
-// ** GET /products?minPrice=100
 exports.getProductById = async (req, res) => {
   const id = req.params.id;
 
@@ -146,5 +193,3 @@ exports.deleteProductById = async (req, res) => {
     product: deletedProduct,
   });
 };
-
-// ** GET /products?minPrice=100
