@@ -1,14 +1,32 @@
-const { eq } = require("drizzle-orm");
+const { eq, gte } = require("drizzle-orm");
 const db = require("../src");
 const { productsTable } = require("../src/db/schema");
 
 // GET /products
 exports.getAllProducts = async (req, res) => {
   const products = await db.select().from(productsTable);
+  const minPrice = req.query.minPrice;
+
+  if (isNaN(minPrice))
+    return res.status(400).json({ error: "minPrice must be a number" });
+
+  if (minPrice) {
+    const filteredProducts = await db
+      .select()
+      .from(productsTable)
+      .where(gte(productsTable.price, minPrice));
+
+    return res.json({
+      count: filteredProducts.length,
+      products: filteredProducts,
+    });
+  }
+
   return res.json(products);
 };
 
-// GET /products/:id
+// ** GET /products/:id
+// ** GET /products?minPrice=100
 exports.getProductById = async (req, res) => {
   const id = req.params.id;
 
@@ -109,6 +127,7 @@ exports.updateProductById = async (req, res) => {
   });
 };
 
+// DELETE /products/:id
 exports.deleteProductById = async (req, res) => {
   const id = Number.parseInt(req.params.id);
 
@@ -127,3 +146,5 @@ exports.deleteProductById = async (req, res) => {
     product: deletedProduct,
   });
 };
+
+// ** GET /products?minPrice=100
