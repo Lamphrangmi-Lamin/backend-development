@@ -1,12 +1,15 @@
-const { eq, gte, lte, and } = require("drizzle-orm");
+const { eq, gte, lte, and, ilike } = require("drizzle-orm");
 const db = require("../src");
 const { productsTable } = require("../src/db/schema");
 
-// GET /products
+// ** GET /products
 exports.getAllProducts = async (req, res) => {
-  const products = await db.select().from(productsTable);
-  const minPrice = req.query.minPrice;
-  const maxPrice = req.query.maxPrice;
+  const { minPrice, maxPrice, search } = req.query;
+
+  const products = await db
+    .select()
+    .from(productsTable)
+    .where(search ? ilike(productsTable.name, `%${search}%`) : undefined);
 
   // ** GET /products?minPrice=100&maxPrice=500
   if (minPrice && maxPrice) {
