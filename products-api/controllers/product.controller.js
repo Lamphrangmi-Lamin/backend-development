@@ -1,79 +1,91 @@
 const { eq, gte, lte, and, ilike } = require("drizzle-orm");
 const db = require("../src");
-const { productsTable } = require("../src/db/schema");
+const { productsTable, categoriesTable } = require("../src/db/schema");
 
 // ** GET /products
 exports.getAllProducts = async (req, res) => {
-  const { minPrice, maxPrice, search } = req.query;
+  try {
+    const { minPrice, maxPrice, search, category, page, limit } = req.query;
 
-  const products = await db
-    .select()
-    .from(productsTable)
-    .where(search ? ilike(productsTable.name, `%${search}%`) : undefined);
+    // ?? Dynamic filtering
+    const filters = [];
 
-  // ** GET /products?minPrice=100&maxPrice=500
-  if (minPrice && maxPrice) {
-    const min = Number(minPrice);
-    const max = Number(maxPrice);
+    // ? Price filters
+    if (minPrice || maxPrice) {
+      const min = minPrice ? Number(minPrice) : 0;
+      const max = maxPrice ? Number(maxPrice) : Infinity;
 
-    if (isNaN(minPrice) || isNaN(maxPrice))
+      if (isNaN(min) || isNaN(max))
+        return res.status(400).json({ error: "Prices must be valid numbers" });
+
+      if (min > max)
+        return res
+          .status(400)
+          .json({ error: "minPrice cannot be greater than maxPrice" });
+
+      if (minPrice) filters.push(gte(productsTable.price, min));
+      if (maxPrice) filters.push(lte(productsTable.price, max));
+    }
+
+    // ? Search Filter ** GET /products?search=keyboard
+    if (search) filters.push(ilike(productsTable.name, `%${search}%`));
+
+    // ? GET /products?category=electronics
+    if (category) filters.push(ilike(categoriesTable.name, category));
+
+    const pageNumber = page ? Number(page) : 1;
+    const limitNumber = limit ? Math.min(Number(limit), 100) : 10;
+
+    if (pageNumber < 1 || limitNumber < 1)
       return res
         .status(400)
-        .json({ error: "minPrice and maxPrice must be valid number" });
+        .json({ error: "Page and Limit must be greater than 0" });
 
-    if (min > max)
-      return res
-        .status(400)
-        .json({ error: "minPrice cannot be greater than maxPrice" });
+    const offsetNumber = (pageNumber - 1) * limitNumber;
 
-    const filteredProducts = await db
-      .select()
+    // ? Build the base query
+    let dbQuery = db
+      .select({
+        id: productsTable.id,
+        name: productsTable.name,
+        price: productsTable.price,
+        stock: productsTable.stock,
+        categoryId: productsTable.categoryId,
+        categoryName: categoriesTable.name,
+        created_at: productsTable.created_at,
+      })
       .from(productsTable)
-      .where(and(gte(productsTable.price, min), lte(productsTable.price, max)));
+      .leftJoin(
+        categoriesTable,
+        eq(productsTable.categoryId, categoriesTable.id),
+      );
 
-    return res.json({
-      count: filteredProducts.length,
-      products: filteredProducts,
+    // ? Apply all filters safely
+    if (filters.length > 0) dbQuery = dbQuery.where(and(...filters));
+
+    // ? Apply pagination last
+    dbQuery = dbQuery.limit(limitNumber).offset(offsetNumber);
+
+    const paginatedProducts = await dbQuery;
+
+    return res.status(200).json({
+      metadata: {
+        currentPage: pageNumber,
+        itemsPerPage: limitNumber,
+        returnedItemsCount: paginatedProducts.length,
+      },
+      products: paginatedProducts,
     });
+
+    // ?? //
+  } catch (error) {
+    console.error("Error fetching the products", error);
+    return res
+      .status(500)
+      .json({ error: "Internal server error while fetching products" });
   }
 
-  // ** GET /products?minPrice=100
-  if (minPrice) {
-    const min = Number(minPrice);
-
-    if (isNaN(minPrice))
-      return res.status(400).json({ error: "minPrice must be a number" });
-
-    const filteredProducts = await db
-      .select()
-      .from(productsTable)
-      .where(gte(productsTable.price, min));
-
-    return res.json({
-      count: filteredProducts.length,
-      products: filteredProducts,
-    });
-  }
-
-  // ** GET /products?maxPrice=500
-  if (maxPrice) {
-    const max = Number(maxPrice);
-
-    if (isNaN(maxPrice))
-      return res.status(400).json({ error: "maxPrice must be a valid number" });
-
-    const filteredProducts = await db
-      .select()
-      .from(productsTable)
-      .where(lte(productsTable.price, max));
-
-    return res.json({
-      count: filteredProducts.length,
-      products: filteredProducts,
-    });
-  }
-
-  return res.json(products);
+  //   ??
 };
 
 // ** GET /products/:id
