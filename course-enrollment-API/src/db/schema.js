@@ -6,6 +6,7 @@ const {
   timestamp,
   text,
   primaryKey,
+  index,
 } = require("drizzle-orm/pg-core");
 
 // students
@@ -40,7 +41,10 @@ const enrollmentsTable = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.student_id, table.course_id] }),
-    //
+    // Indexes for performance
+    // Syntax: index("index_name_in_db").on(table.column_name)
+    index("student_id_idx").on(table.student_id),
+    index("course_id_idx").on(table.course_id),
   ],
 );
 
