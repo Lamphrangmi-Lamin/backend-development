@@ -69,3 +69,35 @@ exports.getCoursesByStudentId = async (req, res) => {
     return res.status(500).json({ error: `Internal server error` });
   }
 };
+
+exports.getStudents = async (req, res) => {
+  try {
+    const { email, name } = req.query;
+
+    if (email) {
+      if (!email || email.trim() === "")
+        return res.status(404).json({ error: "Email is required" });
+    }
+
+    if (name) {
+      if (!name || name.trim() === "")
+        return res.status(404).json({ error: "Name is required" });
+    }
+
+    const [existingStudent] = await db
+      .select()
+      .from(studentsTable)
+      .where(eq(studentsTable.email, email))
+      .limit(1);
+
+    if (!existingStudent)
+      return res
+        .status(404)
+        .json({ error: `No student with email ${email} found` });
+
+    return res.json(existingStudent);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
