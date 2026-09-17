@@ -14,6 +14,8 @@ export const usersTable = pgTable("users", {
   createdAt: timestamp({ withTimezone: true, mode: "date" })
     .defaultNow()
     .notNull(),
+  salt: text().notNull(),
+  age: integer().notNull()
 });
 
 export const sessionsTable = pgTable("sessions", {
