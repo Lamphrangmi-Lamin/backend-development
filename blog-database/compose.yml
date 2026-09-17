@@ -9,4 +9,4 @@ services:
       POSTGRES_DB: section7
 
     ports:
-      - 5432:5432
+      - "5432:5432"
