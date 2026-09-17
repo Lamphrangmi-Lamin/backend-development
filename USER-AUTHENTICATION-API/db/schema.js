@@ -10,12 +10,11 @@ export const usersTable = pgTable("users", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull().unique(),
-  passwordHash: varchar().notNull(),
+  password: text().notNull(),
   createdAt: timestamp({ withTimezone: true, mode: "date" })
     .defaultNow()
     .notNull(),
   salt: text().notNull(),
-  age: integer().notNull()
 });
 
 export const sessionsTable = pgTable("sessions", {

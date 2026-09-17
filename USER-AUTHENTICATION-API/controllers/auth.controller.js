@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import db from "../db/index";
-import { usersTable } from "../db/schema";
+import db from "../db/index.js";
+import { usersTable } from "../db/schema.js";
 import { createHmac, randomBytes } from "node:crypto";
 
 export const registerUser = async (req, res) => {
@@ -39,7 +39,7 @@ export const registerUser = async (req, res) => {
         name,
         email,
         password: hashedPassword,
-        salt
+        salt,
       })
       .returning({
         id: usersTable.id,
