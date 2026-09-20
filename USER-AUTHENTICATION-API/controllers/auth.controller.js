@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import db from "../db/index.js";
-import { usersTable } from "../db/schema.js";
-import { createHmac, randomBytes } from "node:crypto";
+import { sessionsTable, usersTable } from "../db/schema.js";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const registerUser = async (req, res) => {
   try {
@@ -52,6 +52,77 @@ export const registerUser = async (req, res) => {
       .json({ message: "User registered successfully", user: newUser });
   } catch (error) {
     console.error("Error creating user: ", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || email.trim() === "")
+      return res.status(400).json({ error: "Email is required" });
+
+    if (!password)
+      return res.status(400).json({ error: "Password is required." });
+
+    const [existingUser] = await db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        salt: usersTable.salt,
+        password: usersTable.password,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.email, email));
+
+    if (!existingUser)
+      return res.status(404).json({ error: "Invalid email or password" });
+
+    const expectedHashBuffer = Buffer.from(existingUser.password, "hex");
+
+    const newHashBuffer = createHmac("sha256", existingUser.salt)
+      .update(password)
+      .digest();
+
+    if (
+      expectedHashBuffer.length !== newHashBuffer.length ||
+      !timingSafeEqual(expectedHashBuffer, newHashBuffer)
+    )
+      return res.status(401).json({ error: "Invalid email or password" });
+
+    // SESSION CREATION
+
+    // Generate a cryptographically secure random Session ID
+    const sessionId = randomBytes(32).toString("hex");
+
+    // Duration
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+    // Store the session to the database
+    await db.insert(sessionsTable).values({
+      id: sessionId,
+      userId: existingUser.id,
+      expiresAt: new Date(Date.now() + ONE_DAY_MS),
+    });
+
+    // Send the signed cookie to the client
+    const COOKIE_SECRET = process.env.COOKIE_SECRET;
+    const signature = createHmac("sha256", COOKIE_SECRET)
+      .update(sessionId)
+      .digest("base64url");
+
+    const signedCookie = `${sessionId}.${signature}`;
+
+    res.setHeader("Set-cookie", [
+      `sid=${signedCookie}; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax`,
+    ]);
+
+    // Return HTTP response with proper message
+    return res.status(200).json({ message: "Login successful" });
+    //
+  } catch (error) {
+    console.error("Error logging user: ", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
