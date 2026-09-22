@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import db from "../db/index.js";
 import { sessionsTable, usersTable } from "../db/schema.js";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { getValidSessionId } from "../utils/auth.js";
 
 export const registerUser = async (req, res) => {
   try {
@@ -123,6 +124,27 @@ export const loginUser = async (req, res) => {
     //
   } catch (error) {
     console.error("Error logging user: ", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const logoutUser = async (req, res) => {
+  try {
+    const sessionId = getValidSessionId(req.headers.cookie);
+
+    if (sessionId)
+      await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId));
+
+    res.setHeader("Set-cookie", [
+      "sid=; HttpOnly; Path=/; Max-Age=0 SameSite=Lax",
+    ]);
+
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Error during logout: ", error);
+    res.setHeader("Set-Cookie", [
+      "sid=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax",
+    ]);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
