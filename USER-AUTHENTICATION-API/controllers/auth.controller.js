@@ -149,40 +149,6 @@ export const logoutUser = async (req, res) => {
   }
 };
 
-export const getCurrentUser = async (req, res) => {
-  try {
-    const sessionId = getValidSessionId(req.headers.cookie);
-
-    if (!sessionId)
-      return res.status(401).json({ user: null, error: "Unauthorized" });
-
-    const [sessionRecord] = await db
-      .select({
-        expiresAt: sessionsTable.expiresAt,
-        user: {
-          id: usersTable.id,
-          name: usersTable.name,
-          email: usersTable.email,
-        },
-      })
-      .from(sessionsTable)
-      .innerJoin(usersTable, eq(sessionsTable.userId, usersTable.id))
-      .where(eq(sessionsTable.id, sessionId));
-
-    if (!sessionRecord)
-      return res.status(401).json({ user: null, error: "Session not found" });
-
-    if (new Date() > new Date(sessionRecord.expiresAt)) {
-      res.setHeader("Set-Cookie", [
-        "sid=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax",
-      ]);
-      await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId));
-      return res.status(401).json({ user: null, error: "Session expired" });
-    }
-
-    return res.status(200).json({ user: sessionRecord.user });
-  } catch (error) {
-    console.error("Error fetching current user: ", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
+export const getCurrentUser = (req, res) => {
+  return res.status(200).json(req.user);
 };
