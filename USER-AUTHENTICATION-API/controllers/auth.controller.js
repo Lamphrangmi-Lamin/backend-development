@@ -8,15 +8,6 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || name.trim() === "")
-      return res.status(400).json({ error: "Name is required" });
-
-    if (!email || email.trim() === "")
-      return res.status(400).json({ error: "Email is required" });
-
-    if (!password)
-      return res.status(400).json({ error: "Password is required" });
-
     const [existingUser] = await db
       .select({ email: usersTable.email })
       .from(usersTable)
@@ -60,12 +51,6 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || email.trim() === "")
-      return res.status(400).json({ error: "Email is required" });
-
-    if (!password)
-      return res.status(400).json({ error: "Password is required." });
 
     const [existingUser] = await db
       .select({
