@@ -51,13 +51,7 @@ export const loginUser = async (req, res) => {
       expiresIn: "1h",
     });
 
-    // Return the token to the response body
-    res.setHeader(
-      "Set-Cookie",
-      `jwt=${token}; HttpOnly; Path=/; Secure; SameSite=Lax`,
-    );
-
-    return res.status(200).json({ message: "Logged in" }); // No token in the body!
+    return res.status(200).json({ message: "Logged in", token }); // No token in the body!
   } catch (error) {
     console.error("Error while logging in: ", error);
     return res.status(500).json({ error: "Internal server error" });
