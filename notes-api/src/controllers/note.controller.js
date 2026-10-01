@@ -21,3 +21,13 @@ export const createNote = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const getNotes = async (req, res) => {
+  try {
+    const notes = await db.select().from(notesTable);
+    return res.json(notes);
+  } catch (error) {
+    console.error("Error fetching notes: ", error);
+    return req.status(500).json({ error: "Internal server error" });
+  }
+};
