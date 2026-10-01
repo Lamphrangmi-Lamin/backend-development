@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import db from "../db/index.js";
-import { notesTable } from "../db/schema.js";
+import { notesTable, usersTable } from "../db/schema.js";
 import {
   noteIdParamsSchema,
   updateNoteSchema,
@@ -100,6 +100,31 @@ export const updateNote = async (req, res) => {
     //
   } catch (error) {
     console.error("Error updating note: ", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const deleteNote = async (req, res) => {
+  const paramsResult = noteIdParamsSchema.safeParse(req.params);
+  if (!paramsResult.success) {
+    return res.status(400).json({ error: "Invalid note id" });
+  }
+
+  try {
+    const noteId = paramsResult.data.id;
+
+    const [deletedNote] = await db
+      .delete(notesTable)
+      .where(and(eq(notesTable.id, noteId, eq(notesTable.userId, req.user.id))))
+      .returning();
+
+    if (!deletedNote) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+
+    return res.status(200).json({ message: "Note deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting note: ", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
