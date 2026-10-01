@@ -8,3 +8,10 @@ export const noteSchema = z.object({
 export const noteIdParamsSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
+
+export const updateNoteSchema = noteSchema
+  .partial()
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    "Provide at least one field to update",
+  );

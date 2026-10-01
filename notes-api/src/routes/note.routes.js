@@ -4,6 +4,7 @@ import {
   createNote,
   getNoteById,
   getNotes,
+  updateNote,
 } from "../controllers/note.controller.js";
 import { noteSchema } from "../validators/note.validator.js";
 const noteRouter = express.Router();
@@ -11,5 +12,6 @@ const noteRouter = express.Router();
 noteRouter.post("/", validate(noteSchema), createNote);
 noteRouter.get("/", getNotes);
 noteRouter.get("/:id", getNoteById);
+noteRouter.patch("/:id", updateNote);
 
 export default noteRouter;
