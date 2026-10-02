@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import db from "../db/index.js";
-import { notesTable, usersTable } from "../db/schema.js";
+import { notesTable } from "../db/schema.js";
 import {
   noteIdParamsSchema,
   updateNoteSchema,
@@ -50,7 +50,9 @@ export const getNoteById = async (req, res) => {
     const [note] = await db
       .select()
       .from(notesTable)
-      .where(eq(notesTable.id, noteId));
+      .where(
+        and(eq(notesTable.id, noteId), eq(notesTable.userId, req.user.id)),
+      );
 
     if (!note) {
       return res.status(404).json({ error: "Note not found" });
@@ -89,7 +91,7 @@ export const updateNote = async (req, res) => {
         ...bodyResult.data,
         updatedAt: new Date(),
       })
-      .where(and(eq(notesTable.id, noteId)), eq(notesTable.userId, req.user.id))
+      .where(and(eq(notesTable.id, noteId), eq(notesTable.userId, req.user.id)))
       .returning();
 
     if (!updatedNote) {
@@ -115,7 +117,7 @@ export const deleteNote = async (req, res) => {
 
     const [deletedNote] = await db
       .delete(notesTable)
-      .where(and(eq(notesTable.id, noteId, eq(notesTable.userId, req.user.id))))
+      .where(and(eq(notesTable.id, noteId), eq(notesTable.userId, req.user.id)))
       .returning();
 
     if (!deletedNote) {
