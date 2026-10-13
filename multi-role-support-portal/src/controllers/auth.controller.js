@@ -70,3 +70,28 @@ export const login = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const getMe = async (req, res) => {
+  try {
+    const [user] = await db
+      .select({
+        id: usersTable.id,
+        name: usersTable.name,
+        email: usersTable.email,
+        role: usersTable.role,
+        createdAt: usersTable.createdAt,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.user.userId))
+      .limit(1);
+
+    if (!user) {
+      return res.status(401).json({ error: "User no longer exists" });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error("Error getting current user: ", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
