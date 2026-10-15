@@ -38,7 +38,7 @@ export const ticketsTable = pgTable("tickets", {
   title: text().notNull(),
   description: text().notNull(),
   status: statusEnum("status").default("open").notNull(),
-  priority: priorityEnum("priority").notNull(),
+  priority: priorityEnum("priority").default("low").notNull(),
   customerId: integer()
     .references(() => usersTable.id)
     .notNull(),
